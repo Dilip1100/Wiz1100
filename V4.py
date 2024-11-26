@@ -133,22 +133,38 @@ app.layout = html.Div(
      Input('data_mart_selector', 'value')]
 )
 def update_slicers_and_table(server, db, schema, data_mart):
+    # Allowed schemas
+    allowed_schemas = ['dbo', 'mer', 'AADUtilUser', 'WSS\\lcacho2']
+
+    # Start with a copy of the cleaned dataframe
     filtered_df = full_df_cleaned.copy()
 
-    # Filter based on selections
+    # Filter by SERVER, case-insensitive
     if server:
-        filtered_df = filtered_df[filtered_df['SERVER'] == server]
+        filtered_df = filtered_df[filtered_df['SERVER'].str.lower() == server.lower()]
+
+    # Filter by DB
     if db:
         filtered_df = filtered_df[filtered_df['DB'] == db]
+
+    # Filter by SCHEMA
     if schema:
         filtered_df = filtered_df[filtered_df['SCHEMA'] == schema]
+
+    # Filter by DATA MART
     if data_mart:
         filtered_df = filtered_df[filtered_df['DATA MART'] == data_mart]
 
-    # Generate dynamic options for DB, Schema, Data Mart dropdowns
-    db_options = [{'label': i, 'value': i} for i in filtered_df['DB'].unique()]
-    schema_options = [{'label': i, 'value': i} for i in filtered_df['SCHEMA'].unique()]
-    data_mart_options = [{'label': i, 'value': i} for i in filtered_df['DATA MART'].unique()]
+    # Restrict schema options to allowed schemas
+    schema_options = [
+        {'label': schema, 'value': schema}
+        for schema in filtered_df['SCHEMA'].unique()
+        if schema in allowed_schemas
+    ]
+
+    # Generate dynamic options for DB and Data Mart dropdowns
+    db_options = [{'label': db, 'value': db} for db in filtered_df['DB'].unique()]
+    data_mart_options = [{'label': dm, 'value': dm} for dm in filtered_df['DATA MART'].unique()]
 
     # Generate table for filtered data
     table = dash_table.DataTable(
@@ -176,6 +192,7 @@ def update_slicers_and_table(server, db, schema, data_mart):
 
     # Return dynamic options, the updated table, and the CSV download link
     return db_options, schema_options, data_mart_options, table, f"data:text/csv;base64,{csv_base64}"
+
 
 
 # Run the app
